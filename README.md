@@ -1,6 +1,12 @@
 # mrubyc_arduino
 ArduinoIDE用mruby/cライブラリ
 
+#インストール手順
+1. github右上の[Code→Download ZIP]にてファイルを保存。
+2. ArduinoIDEを開く
+3. [スケッチ→ライブラリをインクルード→.ZIP形式のライブラリをインストール…]
+4. 1にて保存しておいたファイルを選択
+
 # 動作確認ボード
 - Arduino Due
 - Black Pill F401CC
