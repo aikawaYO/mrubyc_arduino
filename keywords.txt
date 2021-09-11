@@ -1,0 +1,15 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+mrb_vm		KEYWORD1
+mrb_value	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+mrbc_init		KEYWORD2
+mrbc_define_method	KEYWORD2
+mrbc_create_task	KEYWORD2
+mrbc_run		KEYWORD2
