@@ -12,6 +12,8 @@ ArduinoIDE用mruby/cライブラリ
 - Black Pill F401CC
 - NUCLEO-F303RE
 - ATOM Lite, ATOM Matrix(シリアル通信のみ)
+- M5Stamp Pico(シリアル通信のみ)
+- M5StickC(LED_BUILTIN -> 10)
 
 # 動作確認中
 - ESP32
