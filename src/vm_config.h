@@ -30,21 +30,16 @@
 #define MAX_SYMBOLS_COUNT 255
 #endif
 
-// maximum number of exception depth
-#if !defined(MAX_EXCEPTION_COUNT)
-#define MAX_EXCEPTION_COUNT 16
-#endif
-
 
 // memory management
 //  MRBC_ALLOC_16BIT or MRBC_ALLOC_24BIT
 #define MRBC_ALLOC_24BIT
 
-/* Configure environment
+/* USE Float. Support Float class.
    0: NOT USE
-   1: USE
+   1: USE float
+   2: USE double
 */
-// USE Float. Support Float class.
 #if !defined(MRBC_USE_FLOAT)
 #define MRBC_USE_FLOAT 1
 #endif
@@ -82,6 +77,7 @@
    If 32-bit alignment is required, enable the following line.
  */
 // #define MRBC_REQUIRE_32BIT_ALIGNMENT
+#define MRBC_REQUIRE_64BIT_ALIGNMENT
 
 // Debug code.
 #if !defined(NDEBUG)

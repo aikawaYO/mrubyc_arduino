@@ -3,8 +3,8 @@
   mruby/c Math class
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2015- Kyushu Institute of Technology.
+  Copyright (C) 2015- Shimane IT Open-Innovation Center.
 
   This file is distributed under BSD 3-Clause License.
 
@@ -19,7 +19,9 @@
 extern "C" {
 #endif
 
-void mrbc_init_class_math(struct VM *vm);
+//@cond
+void mrbc_init_module_math(void);
+//@endcond
 
 
 #ifdef __cplusplus
