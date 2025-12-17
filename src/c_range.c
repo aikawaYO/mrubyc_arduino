@@ -1,26 +1,35 @@
 /*! @file
   @brief
-  mruby/c Range object
+  mruby/c Range class
 
   <pre>
-  Copyright (C) 2015-2020 Kyushu Institute of Technology.
-  Copyright (C) 2015-2020 Shimane IT Open-Innovation Center.
+  Copyright (C) 2015- Kyushu Institute of Technology.
+  Copyright (C) 2015- Shimane IT Open-Innovation Center.
 
   This file is distributed under BSD 3-Clause License.
 
   </pre>
 */
 
-#include "vm_config.h"
-#include "value.h"
-#include "alloc.h"
-#include "static.h"
-#include "class.h"
-#include "c_range.h"
-#include "c_string.h"
-#include "console.h"
-#include "opcode.h"
 
+/***** Feature test switches ************************************************/
+/***** System headers *******************************************************/
+//@cond
+#include "vm_config.h"
+//@endcond
+
+/***** Local headers ********************************************************/
+#include "mrubyc.h"
+
+/***** Constat values *******************************************************/
+/***** Macros ***************************************************************/
+/***** Typedefs *************************************************************/
+/***** Function prototypes **************************************************/
+/***** Local variables ******************************************************/
+/***** Global variables *****************************************************/
+/***** Signal catching functions ********************************************/
+/***** Local functions ******************************************************/
+/***** Global functions *****************************************************/
 
 //================================================================
 /*! constructor
@@ -33,13 +42,12 @@
 */
 mrbc_value mrbc_range_new(struct VM *vm, mrbc_value *first, mrbc_value *last, int flag_exclude)
 {
-  mrbc_value value = {.tt = MRBC_TT_RANGE};
+  mrbc_value value = mrbc_immediate_value(MRBC_TT_RANGE);
 
   value.range = mrbc_alloc(vm, sizeof(mrbc_range));
   if( !value.range ) return value;		// ENOMEM
 
-  value.range->ref_count = 1;
-  value.range->tt = MRBC_TT_RANGE;	// TODO: for DEBUG
+  MRBC_INIT_OBJECT_HEADER( value.range, "RA" );
   value.range->flag_exclude = flag_exclude;
   value.range->first = *first;
   value.range->last = *last;
@@ -55,13 +63,14 @@ mrbc_value mrbc_range_new(struct VM *vm, mrbc_value *first, mrbc_value *last, in
 */
 void mrbc_range_delete(mrbc_value *v)
 {
-  mrbc_dec_ref_counter( &v->range->first );
-  mrbc_dec_ref_counter( &v->range->last );
+  mrbc_decref( &v->range->first );
+  mrbc_decref( &v->range->last );
 
   mrbc_raw_free( v->range );
 }
 
 
+#if defined(MRBC_ALLOC_VMID)
 //================================================================
 /*! clear vm_id
 
@@ -73,6 +82,7 @@ void mrbc_range_clear_vm_id(mrbc_value *v)
   mrbc_clear_vm_id( &v->range->first );
   mrbc_clear_vm_id( &v->range->last );
 }
+#endif
 
 
 //================================================================
@@ -104,7 +114,7 @@ int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 */
 static void c_range_equal3(struct VM *vm, mrbc_value v[], int argc)
 {
-  if( v[0].tt == MRBC_TT_CLASS ) {
+  if( mrbc_type(v[0]) == MRBC_TT_CLASS ) {
     mrbc_value result = mrbc_send( vm, v, argc, &v[1], "kind_of?", 1, &v[0] );
     SET_RETURN( result );
     return;
@@ -156,10 +166,15 @@ static void c_range_exclude_end(struct VM *vm, mrbc_value v[], int argc)
 
 #if MRBC_USE_STRING
 //================================================================
-/*! (method) inspect
+/*! (method) inspect, to_s
 */
 static void c_range_inspect(struct VM *vm, mrbc_value v[], int argc)
 {
+  if( mrbc_type(v[0]) == MRBC_TT_CLASS ) {
+    mrbc_object_inspect(vm, v, argc);
+    return;
+  }
+
   mrbc_value ret = mrbc_string_new(vm, NULL, 0);
   if( !ret.string ) goto RETURN_NIL;		// ENOMEM
 
@@ -181,21 +196,18 @@ static void c_range_inspect(struct VM *vm, mrbc_value v[], int argc)
 #endif
 
 
+/* MRBC_AUTOGEN_METHOD_TABLE
 
-//================================================================
-/*! initialize
-*/
-void mrbc_init_class_range(struct VM *vm)
-{
-  mrbc_class_range = mrbc_define_class(vm, "Range", mrbc_class_object);
+  CLASS("Range")
+  FILE("_autogen_class_range.h")
 
-  mrbc_define_method(vm, mrbc_class_range, "===", c_range_equal3);
-  mrbc_define_method(vm, mrbc_class_range, "first", c_range_first);
-  mrbc_define_method(vm, mrbc_class_range, "last", c_range_last);
-  mrbc_define_method(vm, mrbc_class_range, "exclude_end?", c_range_exclude_end);
-
+  METHOD("===",		c_range_equal3 )
+  METHOD("first",	c_range_first )
+  METHOD("last",	c_range_last )
+  METHOD("exclude_end?", c_range_exclude_end )
 #if MRBC_USE_STRING
-  mrbc_define_method(vm, mrbc_class_range, "inspect", c_range_inspect);
-  mrbc_define_method(vm, mrbc_class_range, "to_s", c_range_inspect);
+  METHOD("inspect",	c_range_inspect )
+  METHOD("to_s",	c_range_inspect )
 #endif
-}
+*/
+#include "_autogen_class_range.h"

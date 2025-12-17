@@ -3,22 +3,60 @@
   mruby/c Key(Symbol) - Value store.
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2015- Kyushu Institute of Technology.
+  Copyright (C) 2015- Shimane IT Open-Innovation Center.
 
   This file is distributed under BSD 3-Clause License.
 
+
+ Function summary
+
+ (constructor)
+    mrbc_kv_new()
+
+ (destructor)
+    mrbc_kv_delete()
+    mrbc_kv_delete_data()
+
+ (initializer)
+    mrbc_kv_init_handle()
+
+ (setter)
+  --[name]-------------[arg]---[ret]---[note]----------------------------------
+    mrbc_kv_set()	*V	int
+
+ (getter)
+  --[name]-------------[arg]---[ret]---[note]----------------------------------
+    mrbc_kv_get()	SymID	*V
+
+ (others)
+    mrbc_kv_resize()
+    mrbc_kv_remove()
+    mrbc_kv_clear()
+    mrbc_kv_dup()
+    mrbc_kv_size()
+
+  (iterator)
+    mrbc_kv_iterator_new()
+    mrbc_kv_i_is_first()
+    mrbc_kv_i_has_next()
+    mrbc_kv_i_get()
+    mrbc_kv_i_next()
   </pre>
 */
 
+/***** Feature test switches ************************************************/
+/***** System headers *******************************************************/
+//@cond
 #include "vm_config.h"
 #include <stdlib.h>
 #include <string.h>
+//@endcond
 
-#include "value.h"
-#include "alloc.h"
-#include "keyvalue.h"
+/***** Local headers ********************************************************/
+#include "mrubyc.h"
 
+/***** Constat values *******************************************************/
 #if !defined(MRBC_KV_SIZE_INIT)
 #define MRBC_KV_SIZE_INIT 2
 #endif
@@ -26,7 +64,13 @@
 #define MRBC_KV_SIZE_INCREMENT 5
 #endif
 
-
+/***** Macros ***************************************************************/
+/***** Typedefs *************************************************************/
+/***** Function prototypes **************************************************/
+/***** Local variables ******************************************************/
+/***** Global variables *****************************************************/
+/***** Signal catching functions ********************************************/
+/***** Local functions ******************************************************/
 //================================================================
 /*! binary search
 
@@ -52,6 +96,8 @@ static int binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
   return left;
 }
 
+
+/***** Global functions *****************************************************/
 
 //================================================================
 /*! constructor
@@ -95,6 +141,10 @@ int mrbc_kv_init_handle(struct VM *vm, mrbc_kv_handle *kvh, int size)
     // Allocate data buffer.
     kvh->data = mrbc_alloc(vm, sizeof(mrbc_kv) * size);
     if( !kvh->data ) return -1;		// ENOMEM
+
+#if defined(MRBC_DEBUG)
+    memcpy( kvh->data->obj_mark_, "KV", 2 );
+#endif
   }
 
   return 0;
@@ -128,6 +178,7 @@ void mrbc_kv_delete_data(mrbc_kv_handle *kvh)
 }
 
 
+#if defined(MRBC_ALLOC_VMID)
 //================================================================
 /*! clear vm_id
 
@@ -135,16 +186,19 @@ void mrbc_kv_delete_data(mrbc_kv_handle *kvh)
 */
 void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh)
 {
-  mrbc_set_vm_id( kvh, 0 );
   if( kvh->data_size == 0 ) return;
 
   mrbc_kv *p1 = kvh->data;
   const mrbc_kv *p2 = p1 + kvh->n_stored;
+
+  mrbc_set_vm_id( p1, 0 );
+
   while( p1 < p2 ) {
     mrbc_clear_vm_id(&p1->value);
     p1++;
   }
 }
+#endif
 
 
 //================================================================
@@ -156,15 +210,16 @@ void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh)
 */
 int mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
 {
-  mrbc_kv *data2 = mrbc_raw_realloc(kvh->data, sizeof(mrbc_kv) * size);
-  if( !data2 ) return E_NOMEMORY_ERROR;		// ENOMEM
+  if( size <= 0 ) size = 1;
 
-  kvh->data = data2;
+  mrbc_kv *data = mrbc_raw_realloc(kvh->data, sizeof(mrbc_kv) * size);
+  if( !data ) return E_NOMEMORY_ERROR;		// ENOMEM
+
+  kvh->data = data;
   kvh->data_size = size;
 
   return 0;
 }
-
 
 
 //================================================================
@@ -185,7 +240,7 @@ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
 
   // replace value ?
   if( kvh->data[idx].sym_id == sym_id ) {
-    mrbc_dec_ref_counter( &kvh->data[idx].value );
+    mrbc_decref( &kvh->data[idx].value );
     kvh->data[idx].value = *set_val;
     return 0;
   }
@@ -200,6 +255,10 @@ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
     kvh->data = mrbc_alloc(kvh->vm, sizeof(mrbc_kv) * MRBC_KV_SIZE_INIT);
     if( kvh->data == NULL ) return E_NOMEMORY_ERROR;	// ENOMEM
     kvh->data_size = MRBC_KV_SIZE_INIT;
+
+#if defined(MRBC_DEBUG)
+    memcpy( kvh->data->obj_mark_, "KV", 2 );
+#endif
 
   // need resize?
   } else if( kvh->n_stored >= kvh->data_size ) {
@@ -240,7 +299,7 @@ mrbc_value * mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 }
 
 
-
+#if 0
 //================================================================
 /*! setter - only append tail
 
@@ -256,6 +315,10 @@ int mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
     kvh->data = mrbc_alloc(kvh->vm, sizeof(mrbc_kv) * MRBC_KV_SIZE_INIT);
     if( kvh->data == NULL ) return E_NOMEMORY_ERROR;	// ENOMEM
     kvh->data_size = MRBC_KV_SIZE_INIT;
+
+#if defined(MRBC_DEBUG)
+    memcpy( kvh->data->obj_mark_, "KV", 2 );
+#endif
 
   // need resize?
   } else if( kvh->n_stored >= kvh->data_size ) {
@@ -292,7 +355,7 @@ int mrbc_kv_reorder(mrbc_kv_handle *kvh)
 
   return 0;
 }
-
+#endif
 
 
 //================================================================
@@ -308,10 +371,10 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
   if( idx < 0 ) return 0;
   if( kvh->data[idx].sym_id != sym_id ) return 0;
 
-  mrbc_dec_ref_counter( &kvh->data[idx].value );
+  mrbc_decref( &kvh->data[idx].value );
   kvh->n_stored--;
   memmove( kvh->data + idx, kvh->data + idx + 1,
-	   sizeof(mrbc_kv) * (kvh->n_stored - idx) );
+           sizeof(mrbc_kv) * (kvh->n_stored - idx) );
 
   return 0;
 }
@@ -328,7 +391,7 @@ void mrbc_kv_clear(mrbc_kv_handle *kvh)
   mrbc_kv *p1 = kvh->data;
   const mrbc_kv *p2 = p1 + kvh->n_stored;
   while( p1 < p2 ) {
-    mrbc_dec_ref_counter(&p1->value);
+    mrbc_decref(&p1->value);
     p1++;
   }
 
@@ -348,7 +411,7 @@ void mrbc_kv_dup(const mrbc_kv_handle *src, mrbc_kv_handle *dst)
 
   while( mrbc_kv_i_has_next( &ite ) ) {
     mrbc_kv *kv = mrbc_kv_i_next( &ite );
-    mrbc_dup( &kv->value );
+    mrbc_incref( &kv->value );
     mrbc_kv_set( dst, kv->sym_id, &kv->value );
   }
 }
